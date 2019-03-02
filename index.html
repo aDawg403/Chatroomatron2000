@@ -27,22 +27,21 @@
 
 	
 	function genUserList(users){
+		value = JSON.parse(users);
 	    val = "";
-		row = users.split(";");
-	    for(var i = 0; i < row.length;i++){
-			temp = row[i].split("~");
-		    val = val + "<li><font color = \"" + temp[1] + "\">" + temp[0] + "</font>";  
+	    for(var i = 0; i < value.Users.length;i++){
+		    val = val + "<li><font color = \"" + value.Users[i].Color + "\">" + value.Users[i].Name + "</font>";  
 	    }
 	    return val;
 	}
 	
 	function genMessageList(messages){
-		row = messages.split(";");
-	    for (var i = 0; i < row.length;i++){
-			temp = row[i].split("~");
-		    val = val + "<li>" + temp[2] + " " + "<font color = \"" + temp[1] + "\">" + temp[0] + ": </font>" + temp[3];
-	    }
-	    return val;
+		ret = "";
+		var vals = JSON.parse(messages);
+		for (var index = 0; index < vals.Messages.length;index++){
+			ret = ret + "<li>" + vals.Messages[index].Date + " " + "<font color = \"" + vals.Messages[index].Color + "\">" + vals.Messages[index].Name + ": </font>" + vals.Messages[index].Data;
+		}
+	    return ret;
 		
 	}
 	
@@ -60,23 +59,29 @@
             return false;
         });
 		
-        socket.on('chat-message', function(individualMessage){
-			let temp = individualMessage.split("~");
-			$('#messages').append("<li>" + temp[2] + " " + "<font color = \"" + temp[1] + "\">" + temp[0] + ": </font>" + temp[3]);
+        socket.on('chat-add-message', function(data){
+			stored = JSON.parse(data);
+			$('#messages').append("<li>" + stored.Date + " " + "<font color = \"" + stored.Color + "\">" + stored.Name + ": </font>" + stored.Data);
             window.scrollTo(0, document.body.scrollHeight);
         });
 		
 		socket.on('update-users', function(users){
-            $('#users').html(genUserList(users.slice(0,-1)));
+            $('#users').html(genUserList(users));
         });
 		
 		socket.on('pass-info', function(info){
-			let temp = info.split("~");
-            $('#userinfo').html("You are user <font color = \"" + temp[1] + "\">" + temp[0] + "</font>");
+			stored = JSON.parse(info);
+            $('#userinfo').html("You are user <font color = \"" + stored.Color + "\">" + stored.Name + "</font>");
         });
 		
 		socket.on('pass-messages', function(messageHistory){
-			$('#messages').html(genMessageList(messageHistory.slice(0,-1)));
+			$('#messages').html(genMessageList(messageHistory));
+        });
+		
+		socket.on('chat-individual-message', function(message){
+			stored = JSON.parse(message);
+			$('#messages').append("<li>" + stored.Date + " " + "<font color = \"" + stored.Color + "\">" + stored.Name + ": </font><b>" + stored.Data + "</b>");
+            window.scrollTo(0, document.body.scrollHeight);
         });
 		
 	});

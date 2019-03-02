@@ -8,26 +8,19 @@ var messages = [];
 
 
 function genList(myList){
-    var keys = Object.keys(myList);
-    msg = "";
-    for(var i = 0; i < keys.length;i++){
-	    msg = msg + myList[keys[i]].name + "~" + myList[keys[i]].color + ";"  
-    }
-    return msg;
+	var userInfo = {"Users":[]};
+	var keys = Object.keys(myList);
+	for(var i = 0; i < keys.length;i++){
+		userInfo.Users.push(
+		{
+			"Name":myList[keys[i]].name,
+			"Color":myList[keys[i]].color,
+			"Date":myList[keys[i]].date,
+			"Data":myList[keys[i]].data
+		});
+	};
+	return userInfo;
 }
-
-function genMessages(pastMessages){
-	msg = "";
-    for (var i = 0; i < pastMessages.length; i++){
-	    msg = msg + pastMessages[i].name + "~" + pastMessages[i].color + "~" + pastMessages[i].date + "~" + pastMessages[i].message + ";"  
-    }
-    return msg;
-}
-
-function genMessage(message){
-    return message.name + "~" + message.color + "~" + message.date + "~" + message.message;  
-}
-
 
 
 app.get('/', function(req, res){
@@ -36,18 +29,37 @@ app.get('/', function(req, res){
 
 io.sockets.on('connection', function(socket){
 	users[socket.id] = new UserElement();
-	io.emit("update-users", genList(users));
-	let userInfo = users[socket.id].name + "~" + users[socket.id].color;
-	let messageInfo = genMessages(messages);
-	socket.emit("pass-info", userInfo);
-	socket.emit("pass-messages", messageInfo);
+	io.emit("update-users", JSON.stringify(genList(users)));
+	let userInfo = {
+		"Name": users[socket.id].name,
+		"Color": users[socket.id].color
+	}
+	var messageInfo = {"Messages":[]};
+	for (var i in messages){
+		messageInfo.Messages.push(
+		{
+			"Name":messages[i].name,
+			"Color":messages[i].color,
+			"Date":messages[i].date,
+			"Data":messages[i].data
+		});
+	};
+	socket.emit("pass-info", JSON.stringify(userInfo));
+	socket.emit("pass-messages", JSON.stringify(messageInfo));
 	console.log("A user connected!");
   
-    socket.on('chat-message', function(msg){
-		msgObj = new MessageElement(users[socket.id].name, users[socket.id].color, "NOW", msg);
+    socket.on('chat-message', function(data){
+		msgObj = new MessageElement(users[socket.id].name, users[socket.id].color, "NOW", data);
 		messages.push(msgObj);
-		console.log(genMessage(msgObj));
-	    io.emit('chat-message', genMessage(msgObj));
+		
+		let msg = {
+			"Name": users[socket.id].name,
+			"Color": users[socket.id].color,
+			"Date": "NOW",
+			"Data": data
+		};
+		socket.broadcast.emit("chat-add-message", JSON.stringify(msg));
+		socket.emit("chat-individual-message", JSON.stringify(msg));
     });
   
     socket.on('disconnect', function(msg){
@@ -95,9 +107,9 @@ function UserElement() {
 	this.color = genColor();
 }
 
-function MessageElement(name, color, date, message){
+function MessageElement(name, color, date, data){
 	this.name = name;
 	this.color = color;
 	this.date = date;
-	this.message = message;
+	this.data = data;
 }
