@@ -54,7 +54,20 @@
         var socket = io();
 		
         $('form').submit(function(){
-			socket.emit('chat-message', $('#m').val());
+			var message = $('#m').val();
+			if (message.startsWith("/nick")){
+				var myList = message.split(" ");
+				newUser = myList[1];
+				socket.emit("change-username", newUser);
+			}
+			else if (message.startsWith("/color")){
+				var myList = message.split(" ");
+				newUser = myList[1];
+				socket.emit("change-color", newUser);
+			}
+			else {
+				socket.emit('chat-message', message);
+			}
             $('#m').val('');
             return false;
         });
@@ -70,7 +83,10 @@
         });
 		
 		socket.on('pass-info', function(info){
+			//updatecookie
+			//alert(document.cookie)
 			stored = JSON.parse(info);
+			//document.cookie = "username=" + stored.Name + "; expires=Thu, 18 Dec 2013 12:00:00 UTC; path=/";
             $('#userinfo').html("You are user <font color = \"" + stored.Color + "\">" + stored.Name + "</font>");
         });
 		

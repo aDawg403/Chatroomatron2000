@@ -28,6 +28,9 @@ app.get('/', function(req, res){
 });
 
 io.sockets.on('connection', function(socket){
+	
+	//read cookie?
+	
 	users[socket.id] = new UserElement();
 	io.emit("update-users", JSON.stringify(genList(users)));
 	let userInfo = {
@@ -61,10 +64,31 @@ io.sockets.on('connection', function(socket){
 		socket.broadcast.emit("chat-add-message", JSON.stringify(msg));
 		socket.emit("chat-individual-message", JSON.stringify(msg));
     });
-  
+	
+	socket.on("change-username", function(data){
+		users[socket.id].name = data;
+		let userInfo = {
+			"Name": users[socket.id].name,
+			"Color": users[socket.id].color
+		};
+		//io emit update users
+		io.emit("update-users", JSON.stringify(genList(users)));
+		socket.emit("pass-info", JSON.stringify(userInfo));
+    });
+	
+	socket.on("change-color", function(data){
+		users[socket.id].color = data;
+		let userInfo = {
+			"Name": users[socket.id].name,
+			"Color": "#" + users[socket.id].color
+		};
+		io.emit("update-users", JSON.stringify(genList(users)));
+		socket.emit("pass-info", JSON.stringify(userInfo));
+    });
+	
     socket.on('disconnect', function(msg){
 		delete users[socket.id];
-		io.emit('update-users', genList(users));
+		io.emit('update-users', JSON.stringify(genList(users)));
 		console.log("user disconnected");
     });
 });
@@ -106,6 +130,7 @@ function UserElement() {
 	this.name = genName();
 	this.color = genColor();
 }
+
 
 function MessageElement(name, color, date, data){
 	this.name = name;
