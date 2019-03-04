@@ -30,7 +30,6 @@ app.get('/', function(req, res){
 io.sockets.on('connection', function(socket){
 	
 	//read cookie?
-	
 	users[socket.id] = new UserElement();
 	io.emit("update-users", JSON.stringify(genList(users)));
 	let userInfo = {
@@ -49,16 +48,18 @@ io.sockets.on('connection', function(socket){
 	};
 	socket.emit("pass-info", JSON.stringify(userInfo));
 	socket.emit("pass-messages", JSON.stringify(messageInfo));
-	console.log("A user connected!");
+	console.log("A user has connected!");
   
     socket.on('chat-message', function(data){
-		msgObj = new MessageElement(users[socket.id].name, users[socket.id].color, "NOW", data);
+		var myTime = new Date();
+		//console.log(myTime);
+		msgObj = new MessageElement(users[socket.id].name, users[socket.id].color, myTime, data);
 		messages.push(msgObj);
 		
 		let msg = {
 			"Name": users[socket.id].name,
 			"Color": users[socket.id].color,
-			"Date": "NOW",
+			"Date": myTime,
 			"Data": data
 		};
 		socket.broadcast.emit("chat-add-message", JSON.stringify(msg));
@@ -66,21 +67,32 @@ io.sockets.on('connection', function(socket){
     });
 	
 	socket.on("change-username", function(data){
-		users[socket.id].name = data;
-		let userInfo = {
-			"Name": users[socket.id].name,
-			"Color": users[socket.id].color
+		var keys = Object.keys(users);
+		for(var i = 0; i < keys.length;i++){
+			if (data == users[keys[i]].name) {
+				found = true;
+			}
 		};
-		//io emit update users
-		io.emit("update-users", JSON.stringify(genList(users)));
-		socket.emit("pass-info", JSON.stringify(userInfo));
+		if (found){
+			socket.emit("username-error", data);
+		}
+		else{
+			users[socket.id].name = data;
+			let userInfo = {
+				"Name": users[socket.id].name,
+				"Color": users[socket.id].color
+			};
+			io.emit("update-users", JSON.stringify(genList(users)));
+			socket.emit("pass-info", JSON.stringify(userInfo));
+		}
+		found = false;
     });
 	
 	socket.on("change-color", function(data){
 		users[socket.id].color = data;
 		let userInfo = {
 			"Name": users[socket.id].name,
-			"Color": "#" + users[socket.id].color
+			"Color": users[socket.id].color
 		};
 		io.emit("update-users", JSON.stringify(genList(users)));
 		socket.emit("pass-info", JSON.stringify(userInfo));
@@ -110,20 +122,22 @@ function genName(){
 			text += possible.charAt(Math.floor(Math.random() * possible.length));
 		
 		found = false;
-		for (var i = 0; i < users.length;i++){
-			if (text == users[i].name) {
+		var keys = Object.keys(users);
+		for(var i = 0; i < keys.length;i++){
+			if (text == users[keys[i]].name) {
 				found = true;
 			}
-		}
+		};
 		if (!found){
 			gen = false;
 		}
 	}
 	return text;
 }
-
+		
+		
 function genColor(){
-	return "#000000".replace(/0/g,function(){return (~~(Math.random()*16)).toString(16);}); //random color generation
+	return "000000".replace(/0/g,function(){return (~~(Math.random()*16)).toString(16);}); //random color generation
 }
 
 function UserElement() {
