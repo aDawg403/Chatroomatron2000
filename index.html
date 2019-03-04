@@ -111,24 +111,40 @@
 	    return ret;
 		
 	}
+	function getCookie(name) {
+		var value = "; " + document.cookie;
+		var parts = value.split("; " + name + "=");
+		if (parts.length == 2) return parts.pop().split(";").shift();
+}
 
 	
     $(function () {
         var socket = io();
-		//read cookies
-		var decodedCookie = decodeURIComponent(document.cookie);
-		var ca = decodedCookie.split(';');
-		for(var i = 0; i <ca.length; i++) {
 		
-			var c = ca[i];
-			//alert(c);
-			//while (c.charAt(0) == ' ') {
-				//c = c.substring(1);
-			//}
-			//if (c.indexOf(name) == 0) {
-				//return c.substring(name.length, c.length);
-			//}
+		
+		
+		
+		var curName = getCookie("name");
+		var curColor = getCookie("color");
+
+			
+		if (curName === undefined){
+			socket.emit("request-name", "");
+		}	
+		else{
+			let cookieInfo = {
+				"Name": curName,
+				"Color": curColor
+			};
+			socket.emit("cookie-exists", JSON.stringify(cookieInfo));
+			$('#userinfo').html("You are user <font color = \"" + curColor + "\">" + curName + "</font>");
 		}
+		
+
+		
+		
+		//update server with our cookies
+		
 		
         $('form').submit(function(){
 		
@@ -138,6 +154,7 @@
 				var myList = message.split(" ");
 				newUser = myList[1];
 				socket.emit("change-username", newUser);
+				
 			}
 			else if (message.startsWith("/color")){
 				var myList = message.split(" ");
@@ -150,17 +167,31 @@
             $('#m').val('');
             return false;
         });
-		
-        socket.on('chat-add-message', function(data){
-			var stored = JSON.parse(data);
+
+		socket.on('chat-individual-message', function(message){
+			var stored = JSON.parse(message);
 			var myDate = new Date(stored.Date);
-			var dateStr = ("0" + myDate.getHours()).slice(-2) + ":" + myDate.getMinutes();
-			$('#messages').append("<li>" + dateStr + " " + "<font color = \"" + stored.Color + "\">" + stored.Name + ": </font>" + stored.Data);
-			$("#message_sec").scrollTop($("#message_sec")[0].scrollHeight);
+			var dateStr = ("0" + myDate.getHours()).slice(-2) + ":" + ("0" + myDate.getMinutes()).slice(-2);
+			if($('#userinfo').html().includes(stored.Name)){
+				$('#messages').append("<li>" + dateStr + " " + "<font color = \"" + stored.Color + "\">" + stored.Name + ": </font><b>" + stored.Data + "</b>");
+			}
+			else{
+				$('#messages').append("<li>" + dateStr + " " + "<font color = \"" + stored.Color + "\">" + stored.Name + ": </font>" + stored.Data);
+			}
+            $("#message_sec").scrollTop($("#message_sec")[0].scrollHeight);
         });
 		
 		socket.on('update-users', function(users){
             $('#users').html(genUserList(users));
+        });
+		
+		socket.on('request-name-res', function(users){
+			stored = JSON.parse(info);
+			var myStr = "name=" + stored.Name + "; path=/";
+			document.cookie = myStr;
+			var myStr = "color=" + stored.Color + "; path=/";
+			document.cookie = myStr;
+			$('#userinfo').html("You are user <font color = \"" + stored.Color + "\">" + stored.Name + "</font>");
         });
 		
 		socket.on('username-error', function(user){
@@ -168,28 +199,44 @@
         });
 		
 		socket.on('pass-info', function(info){
-			//updatecookie
-			//alert(document.cookie)
-			stored = JSON.parse(info);
-			var expireTime = new Date() + 1000*36000;
-			//("setting cookie");
-			var myStr = "name=" + stored.Name + "; expires=" + new Date(new Date().getTime()+60*60*1000*24).toGMTString() +"; path=/";
+			
+			var curName = getCookie("name");
+			var curColor = getCookie("color");
+
+			
+			if (curName === undefined){
+				stored = JSON.parse(info);
+				var myStr = "name=" + stored.Name + "; path=/";
+				document.cookie = myStr;
+				var myStr = "color=" + stored.Color + "; path=/";
+				document.cookie = myStr;
+				$('#userinfo').html("You are user <font color = \"" + stored.Color + "\">" + stored.Name + "</font>");
+			}
+			
+			else{
+				let cookieInfo = {
+					"Name": curName,
+					"Color": curColor
+				};
+				socket.emit("cookie-exists", JSON.stringify(cookieInfo));
+				$('#userinfo').html("You are user <font color = \"" + curColor + "\">" + curName + "</font>");
+			}
+        });
+		
+		socket.on('update-info', function(info){
+			var newInfo = JSON.parse(info);
+			
+			var myStr = "name=" + newInfo.Name + "; path=/";
 			document.cookie = myStr;
-            $('#userinfo').html("You are user <font color = \"" + stored.Color + "\">" + stored.Name + "</font>");
+			var myStr = "color=" + newInfo.Color +"; path=/";
+			document.cookie = myStr;
+			$('#userinfo').html("You are user <font color = \"" + newInfo.Color + "\">" + newInfo.Name + "</font>");
+
         });
 		
 		socket.on('pass-messages', function(messageHistory){
 			$('#messages').html(genMessageList(messageHistory));
 			$("#message_sec").scrollTop($("#message_sec")[0].scrollHeight);
-        });
-		
-		socket.on('chat-individual-message', function(message){
-			var stored = JSON.parse(message);
-			var myDate = new Date(stored.Date);
-			var dateStr = ("0" + myDate.getHours()).slice(-2) + ":" + myDate.getMinutes();
-			
-			$('#messages').append("<li>" + dateStr + " " + "<font color = \"" + stored.Color + "\">" + stored.Name + ": </font><b>" + stored.Data + "</b>");
-            $("#message_sec").scrollTop($("#message_sec")[0].scrollHeight);
         });
 		
 	});
