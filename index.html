@@ -150,16 +150,16 @@
 		
 			var message = $('#m').val();
 			
-			if (message.startsWith("/nick")){
+			if (message.startsWith("/nickcolor")){
+				var myList = message.split(" ");
+				newColor = myList[1];
+				socket.emit("change-color", newColor);
+			}
+			else if (message.startsWith("/nick")){
 				var myList = message.split(" ");
 				newUser = myList[1];
 				socket.emit("change-username", newUser);
 				
-			}
-			else if (message.startsWith("/color")){
-				var myList = message.split(" ");
-				newColor = myList[1];
-				socket.emit("change-color", newColor);
 			}
 			else {
 				socket.emit('chat-message', message);
